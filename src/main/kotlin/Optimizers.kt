@@ -7,6 +7,14 @@ sealed class Optimizer {
 
 class CgOptimizer : Optimizer() {
 
+    private val cgComparator: Comparator<Codon> = Comparator { c1, c2 ->
+        when {
+            c1.value == c2.value -> 0
+            c1.value.count { it == 'C' || it == 'G' } > c2.value.count { it == 'C' || it == 'G' } -> 1
+            else -> -1
+        }
+    }
+
     override fun optimize(condons: List<Aminoacid>): List<Codon> {
         return condons.map { it.codons.maxWith(cgComparator)!! }
     }

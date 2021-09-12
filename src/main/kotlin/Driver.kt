@@ -2,7 +2,6 @@ import java.io.BufferedReader
 import java.io.File
 import java.io.FileReader
 import java.util.*
-import kotlin.Comparator
 
 data class Codon(val value: String)
 data class Aminoacid(val name: String, val codons: Set<Codon>)
@@ -56,14 +55,6 @@ fun cacheAminoacids(aminoAcidsText: List<String>, verbose: Boolean = false) {
     if (verbose) println("Aminoacids cached successfully: $cachedAminoacids")
 }
 
-val cgComparator: Comparator<Codon> = Comparator { c1, c2 ->
-    when {
-        c1.value == c2.value -> 0
-        c1.value.count { it == 'C' || it == 'G' } > c2.value.count { it == 'C' || it == 'G' } -> 1
-        else -> -1
-    }
-}
-
 fun extractVirusAminoAcids(virusCodonText: List<String>, verbose: Boolean = false): List<Aminoacid> {
 
     val result = virusCodonText.map { codonToAminoAcid(it, cachedAminoacids).get() }
@@ -80,22 +71,23 @@ fun extractVaccineCodons(vaccineText: List<String>, verbose: Boolean = false): L
 
 data class EvaluationResult(
     val successRate: Float, // Max value 1.0, meaning 100% match rate
+    val matchedCodons: List<Pair<Codon, Codon>>, // Vaccine-virus pairs
     val unmatchedCodons: List<Pair<Codon, Codon>> // Vaccine-Virus pairs
 )
 
 class Evaluator {
     fun evaluate(expected: List<Codon>, virus: List<Codon>): EvaluationResult {
 
-        var vaccineMatches = 0f
+        val matchedPairs = mutableListOf<Pair<Codon, Codon>>()
         val unmatchedPairs = mutableListOf<Pair<Codon, Codon>>()
+
         expected.forEachIndexed { i, expectedCodon ->
-            if (expectedCodon == virus[i])
-                vaccineMatches += 1
-            else
+            if (expectedCodon == virus[i]) {
+                matchedPairs.add(Pair(expectedCodon, virus[i]))
+            } else
                 unmatchedPairs.add(Pair(expectedCodon, virus[i]))
         }
-
-        return EvaluationResult(vaccineMatches / expected.size.toFloat(), unmatchedPairs)
+        return EvaluationResult(matchedPairs.size.toFloat() / expected.size.toFloat(), matchedPairs, unmatchedPairs)
     }
 }
 
